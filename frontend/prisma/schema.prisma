@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VIEWER
+  CREATOR
+  ADMIN
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  REJECTED
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TASK_REWARD
+  REFERRAL_REWARD
+  BONUS_REWARD
+  CAMPAIGN_PAYMENT
+  ADMIN_ADJUSTMENT
+}
+
+enum WithdrawalStatus {
+  PENDING
+  REVIEW
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum SubscriptionTier {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  name         String
+  role         Role     @default(VIEWER)
+  isVerified   Boolean  @default(false)
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  wallet         Wallet?
+  campaigns      Campaign[]
+  tasksCompleted Task[]
+  referralsMade  Referral[]     @relation("Referrer")
+  referralsUsed  Referral[]     @relation("Referred")
+  withdrawals    Withdrawal[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  subscription   Subscription?
+}
+
+model Subscription {
+  id        String           @id @default(uuid())
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier      SubscriptionTier @default(STARTER)
+  isActive  Boolean          @default(true)
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coinBalance   Float    @default(0) // For Viewers earning coins
+  fiatBalance   Float    @default(0) // For Creators funding campaigns (e.g. USD or INR)
+  rewardBalance Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  walletId    String
+  wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        TransactionType
+  referenceId String? // e.g. Task ID, Campaign ID, Withdrawal ID
+  description String?
+  createdAt   DateTime        @default(now())
+}
+
+model Campaign {
+  id            String         @id @default(uuid())
+  creatorId     String
+  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  name          String
+  platform      String // e.g. INSTAGRAM, FACEBOOK, YOUTUBE, THREADS
+  url           String
+  description   String?
+  budget        Float
+  rewardPerTask Float
+  durationDays   Int      @default(7)
+  niche          String   @default("General")
+  adminStartDate DateTime?
+  adminEndDate   DateTime?
+  status        CampaignStatus @default(DRAFT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  tasks Task[]
+}
+
+model Task {
+  id           String     @id @default(uuid())
+  campaignId   String
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  viewerId     String
+  viewer       User       @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  status       TaskStatus @default(PENDING)
+  rewardAmount Float
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Referral {
+  id           String   @id @default(uuid())
+  referrerId   String
+  referrer     User     @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId   String?  @unique // A user can only be referred once
+  referred     User?    @relation("Referred", fields: [referredId], references: [id], onDelete: SetNull)
+  code         String   @unique
+  rewardEarned Float    @default(0)
+  status       String   @default("PENDING") // e.g., PENDING, COMPLETED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Withdrawal {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String // e.g. UPI, BANK_TRANSFER, PAYPAL
+  details   Json // Store account details securely
+  status    WithdrawalStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String // e.g. SYSTEM, REWARD, CAMPAIGN_APPROVAL
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}

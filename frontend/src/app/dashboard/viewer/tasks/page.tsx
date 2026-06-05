@@ -41,7 +41,7 @@ export default function TaskMarketplace() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/tasks/available`, {
+        const res = await fetch(`/api/tasks/available`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store'
         });
@@ -82,7 +82,7 @@ export default function TaskMarketplace() {
 
     try {
       if (token && token !== 'mock-token-123') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/tasks/complete/${task.id}`, {
+        const res = await fetch(`/api/tasks/complete/${task.id}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });

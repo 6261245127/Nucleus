@@ -24,7 +24,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/login`, {
+      const res = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -143,7 +143,7 @@ export default function LoginPage() {
               className="w-full" 
               onClick={async () => {
                 try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/bypass`, {
+                  const res = await fetch(`/api/auth/bypass`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role: 'CREATOR' })
@@ -171,7 +171,7 @@ export default function LoginPage() {
               className="w-full" 
               onClick={async () => {
                 try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/bypass`, {
+                  const res = await fetch(`/api/auth/bypass`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role: 'VIEWER' })
@@ -199,7 +199,7 @@ export default function LoginPage() {
               className="w-full border-red-500/30 text-red-500 hover:bg-red-500/10" 
               onClick={async () => {
                 try {
-                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/bypass`, {
+                  const res = await fetch(`/api/auth/bypass`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role: 'ADMIN' })

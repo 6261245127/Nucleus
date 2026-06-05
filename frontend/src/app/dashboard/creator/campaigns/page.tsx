@@ -25,7 +25,7 @@ export default function CampaignListPage() {
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/campaigns`, {
+        const res = await fetch(`/api/campaigns`, {
           headers: {
             Authorization: `Bearer ${token}`
           },

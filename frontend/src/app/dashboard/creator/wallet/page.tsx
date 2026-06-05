@@ -14,7 +14,7 @@ export default function CreatorWalletPage() {
   useEffect(() => {
     async function fetchWallet() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/me`, {
+        const res = await fetch(`/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

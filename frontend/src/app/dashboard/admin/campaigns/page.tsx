@@ -46,7 +46,7 @@ export default function AdminCampaignsPage() {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/admin/campaigns`, {
+      const res = await fetch(`/api/admin/campaigns`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       });
@@ -73,7 +73,7 @@ export default function AdminCampaignsPage() {
       if (startDate) payload.adminStartDate = new Date(startDate).toISOString();
       if (endDate) payload.adminEndDate = new Date(endDate).toISOString();
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/admin/campaigns/${id}/status`, {
+      const res = await fetch(`/api/admin/campaigns/${id}/status`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export default function AdminCampaignsPage() {
   const deleteCampaign = async (id: string) => {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/admin/campaigns/${id}`, {
+      const res = await fetch(`/api/admin/campaigns/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
