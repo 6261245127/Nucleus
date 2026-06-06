@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
@@ -39,6 +41,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     console.error('Bypass login error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ message: 'Internal server error: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }
