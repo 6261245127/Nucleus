@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAvailableTasks, completeTask, getMyTaskHistory, getMyWallet } from '../controllers/task';
+import { getAvailableTasks, startTask, completeTask, getMyTaskHistory, getMyWallet } from '../controllers/task';
 import { authenticate, requireRole } from '../middlewares/auth';
 
 const router = Router();
@@ -9,6 +9,7 @@ router.use(authenticate);
 router.use(requireRole(['VIEWER']));
 
 router.get('/available', getAvailableTasks);
+router.post('/start/:campaignId', startTask);
 router.post('/complete/:campaignId', completeTask);
 router.get('/history', getMyTaskHistory);
 router.get('/wallet', getMyWallet);

@@ -7,19 +7,22 @@ export const getAvailableTasks = async (req: AuthRequest, res: Response) => {
   try {
     const viewerId = req.user!.id;
 
-    // Get campaigns that are ACTIVE and haven't been completed by this viewer
-    const completedCampaignIds = await prisma.task.findMany({
-      where: { viewerId },
+    // Get campaigns that have been COMPLETED by this viewer
+    const completedTasks = await prisma.task.findMany({
+      where: { viewerId, status: 'COMPLETED' },
       select: { campaignId: true },
     });
 
-    const completedIds = completedCampaignIds.map((t) => t.campaignId);
+    const completedIds = completedTasks.map((t) => t.campaignId);
 
     const campaigns = await prisma.campaign.findMany({
       where: {
         status: 'ACTIVE',
         id: { notIn: completedIds },
-        endDate: { gte: new Date() },
+        OR: [
+          { adminEndDate: null },
+          { adminEndDate: { gte: new Date() } }
+        ]
       },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -45,77 +48,94 @@ export const getAvailableTasks = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Start a task (mark as IN_PROGRESS)
+export const startTask = async (req: AuthRequest, res: Response) => {
+  try {
+    const viewerId = req.user!.id;
+    const { campaignId } = req.params;
+
+    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
+    if (!campaign || campaign.status !== 'ACTIVE') {
+      return res.status(400).json({ message: 'Campaign is not available' });
+    }
+
+    const existing = await prisma.task.findFirst({
+      where: { campaignId, viewerId },
+    });
+
+    if (existing) {
+      if (existing.status === 'COMPLETED') {
+        return res.status(400).json({ message: 'You have already completed this task' });
+      }
+      return res.status(200).json({ message: 'Task already in progress', task: existing });
+    }
+
+    const task = await prisma.task.create({
+      data: {
+        campaignId,
+        viewerId,
+        status: 'IN_PROGRESS',
+        rewardAmount: campaign.rewardPerTask,
+      },
+    });
+
+    res.status(201).json({ message: 'Task started', task });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // Viewer completes a task and earns coins
 export const completeTask = async (req: AuthRequest, res: Response) => {
   try {
     const viewerId = req.user!.id;
     const { campaignId } = req.params;
 
-    // 1. Check campaign exists and is active
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
     if (!campaign || campaign.status !== 'ACTIVE') {
       return res.status(400).json({ message: 'Campaign is not available' });
     }
 
-    // 2. Anti-duplicate: check viewer hasn't already done this task
+    // Anti-duplicate check
     const existing = await prisma.task.findFirst({
       where: { campaignId, viewerId },
     });
-    if (existing) {
-      return res.status(400).json({ message: 'You have already completed this task' });
+
+    if (existing?.status === 'COMPLETED') {
+      return res.status(400).json({ message: 'You have already completed this task and earned the reward.' });
     }
 
-    // 3. Check daily limit for this campaign
-    if (campaign.dailyLimit) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayCount = await prisma.task.count({
-        where: {
-          campaignId,
-          createdAt: { gte: todayStart },
-        },
-      });
-      if (todayCount >= campaign.dailyLimit) {
-        return res.status(400).json({ message: 'Daily limit reached for this campaign' });
-      }
+    if (!existing || existing.status !== 'IN_PROGRESS') {
+      // Allow completing even if not strictly IN_PROGRESS to handle edge cases, but we create/update
     }
 
-    // 4. Check remaining budget
-    const totalSpent = await prisma.task.aggregate({
-      where: { campaignId, status: { in: ['COMPLETED', 'VERIFIED'] } },
-      _sum: { rewardAmount: true },
-    });
-    const spent = totalSpent._sum.rewardAmount || 0;
-    if (spent + campaign.rewardPerTask > campaign.budget) {
-      // Auto-complete campaign if budget exhausted
-      await prisma.campaign.update({ where: { id: campaignId }, data: { status: 'COMPLETED' } });
-      return res.status(400).json({ message: 'Campaign budget exhausted' });
-    }
-
-    // 5. Execute: Create task + credit viewer wallet in a single transaction
+    // Execute: Complete task + credit viewer + update gamification stats in a transaction
     const viewerWallet = await prisma.wallet.findUnique({ where: { userId: viewerId } });
-    if (!viewerWallet) {
-      return res.status(400).json({ message: 'Wallet not found. Please contact support.' });
-    }
+    if (!viewerWallet) return res.status(400).json({ message: 'Wallet not found.' });
 
     const result = await prisma.$transaction(async (tx) => {
-      // Create the completed task record
-      const task = await tx.task.create({
-        data: {
-          campaignId,
-          viewerId,
-          status: 'COMPLETED',
-          rewardAmount: campaign.rewardPerTask,
-        },
-      });
+      // Upsert the task to COMPLETED
+      const task = existing 
+        ? await tx.task.update({
+            where: { id: existing.id },
+            data: { status: 'COMPLETED' }
+          })
+        : await tx.task.create({
+            data: {
+              campaignId,
+              viewerId,
+              status: 'COMPLETED',
+              rewardAmount: campaign.rewardPerTask,
+            },
+          });
 
-      // Credit coins to viewer wallet
+      // Credit wallet
       await tx.wallet.update({
         where: { userId: viewerId },
         data: { coinBalance: { increment: campaign.rewardPerTask } },
       });
 
-      // Record the transaction in viewer's ledger
       await tx.transaction.create({
         data: {
           walletId: viewerWallet.id,
@@ -126,7 +146,6 @@ export const completeTask = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      // Send notification to viewer
       await tx.notification.create({
         data: {
           userId: viewerId,
@@ -136,12 +155,58 @@ export const completeTask = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      return task;
+      // Gamification Logic
+      let userStat = await tx.userStat.findUnique({ where: { userId: viewerId } });
+      if (!userStat) {
+        userStat = await tx.userStat.create({ data: { userId: viewerId } });
+      }
+
+      const now = new Date();
+      let newStreak = userStat.currentStreak;
+      
+      if (userStat.lastTaskDate) {
+        const lastDate = new Date(userStat.lastTaskDate);
+        const diffHours = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+        
+        if (diffHours < 24) {
+          // Same day, streak continues but doesn't increment unless it's a new calendar day
+          // For simplicity, we just increment if it's the next calendar day.
+          const isNextDay = now.getDate() !== lastDate.getDate();
+          if (isNextDay) newStreak += 1;
+        } else if (diffHours < 48) {
+          newStreak += 1;
+        } else {
+          newStreak = 1; // Streak broken
+        }
+      } else {
+        newStreak = 1;
+      }
+
+      const totalTasks = userStat.totalTasks + 1;
+      // Milestones: Level 2 at 10, Level 3 at 50, Level 4 at 100
+      let level = 1;
+      if (totalTasks >= 100) level = 4;
+      else if (totalTasks >= 50) level = 3;
+      else if (totalTasks >= 10) level = 2;
+
+      await tx.userStat.update({
+        where: { userId: viewerId },
+        data: {
+          currentStreak: newStreak,
+          longestStreak: Math.max(newStreak, userStat.longestStreak),
+          lastTaskDate: now,
+          totalTasks: totalTasks,
+          level: level,
+        }
+      });
+
+      return { task, level, newStreak, totalTasks };
     });
 
     res.status(201).json({
       message: `You earned ${campaign.rewardPerTask} coins!`,
-      task: result,
+      task: result.task,
+      gamification: { level: result.level, streak: result.newStreak, totalTasks: result.totalTasks },
       coinsEarned: campaign.rewardPerTask,
     });
   } catch (error) {

@@ -8,7 +8,6 @@ const createCampaignSchema = z.object({
   platform: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  dailyLimit: z.number().optional(),
   durationDays: z.number().min(1),
   niche: z.string(),
 });

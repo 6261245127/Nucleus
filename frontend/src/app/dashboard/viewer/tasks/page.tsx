@@ -31,10 +31,16 @@ const platformColors: Record<string, string> = {
   THREADS: 'from-gray-700 to-black',
 };
 
+import VideoCard from '@/components/player/VideoCard';
+import dynamic from 'next/dynamic';
+
+const VideoModal = dynamic(() => import('@/components/player/VideoModal'), { ssr: false });
+
 export default function TaskMarketplace() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
@@ -61,44 +67,47 @@ export default function TaskMarketplace() {
       // Mock tasks for dev mode
       setTasks([
         { id: '1', name: 'Watch Summer Reel', platform: 'INSTAGRAM', url: 'https://instagram.com/reel/123', description: 'Watch this reel and leave a genuine comment.', rewardPerTask: 5, creator: { name: 'FashionBrand' } },
-        { id: '2', name: 'Like Tech Review Video', platform: 'YOUTUBE', url: 'https://youtube.com/watch?v=abc', description: 'Watch at least 30 seconds and like the video.', rewardPerTask: 10, creator: { name: 'TechGuru' } },
+        { id: '2', name: 'Like Tech Review Video', platform: 'YOUTUBE', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', description: 'Watch at least 30 seconds and like the video.', rewardPerTask: 10, creator: { name: 'TechGuru' } },
         { id: '3', name: 'Share Product Post', platform: 'FACEBOOK', url: 'https://facebook.com/post/456', description: 'View the post and share to your story.', rewardPerTask: 3, creator: { name: 'ShopEasy' } },
         { id: '4', name: 'Follow & Engage on Threads', platform: 'THREADS', url: 'https://threads.net/@brand', description: 'Follow the account and reply to latest thread.', rewardPerTask: 8, creator: { name: 'NewsDaily' } },
         { id: '5', name: 'Watch Dance Reel', platform: 'INSTAGRAM', url: 'https://instagram.com/reel/789', description: 'Watch the full reel and double-tap.', rewardPerTask: 4, creator: { name: 'DanceStudio' } },
-        { id: '6', name: 'Subscribe & Watch Tutorial', platform: 'YOUTUBE', url: 'https://youtube.com/watch?v=def', description: 'Subscribe to the channel and watch the full tutorial.', rewardPerTask: 15, creator: { name: 'CodeAcademy' } },
+        { id: '6', name: 'Subscribe & Watch Tutorial', platform: 'YOUTUBE', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', description: 'Subscribe to the channel and watch the full tutorial.', rewardPerTask: 15, creator: { name: 'CodeAcademy' } },
       ]);
       setIsLoading(false);
     }
   }, [token]);
 
-  const handleComplete = async (task: TaskItem) => {
-    setLoadingId(task.id);
+  const handleTaskClick = (task: TaskItem) => {
+    if (completedIds.has(task.id)) return;
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
 
-    // Open the content URL in a new tab
-    window.open(task.url, '_blank');
-
-    // Simulate a short delay (in production, we'd verify engagement)
-    await new Promise((r) => setTimeout(r, 2000));
+  const handleTaskComplete = async (taskId: string) => {
+    if (!token || token === 'mock-token-123') {
+      setCompletedIds((prev) => new Set([...prev, taskId]));
+      return;
+    }
 
     try {
-      if (token && token !== 'mock-token-123') {
-        const res = await fetch(`/api/tasks/complete/${task.id}`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          alert(data.message || 'Failed to complete task');
-          setLoadingId(null);
-          return;
-        }
+      const res = await fetch(`/api/tasks/complete/${taskId}`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ progress: 100 })
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to complete task');
       }
 
-      setCompletedIds((prev) => new Set([...prev, task.id]));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingId(null);
+      setCompletedIds((prev) => new Set([...prev, taskId]));
+    } catch (err: any) {
+      alert(err.message);
+      throw err;
     }
   };
 
@@ -131,70 +140,24 @@ export default function TaskMarketplace() {
           No tasks available right now. Check back later!
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tasks.map((task) => {
-            const Icon = platformIcons[task.platform] || MessageCircle;
-            const gradient = platformColors[task.platform] || 'from-gray-500 to-gray-600';
-            const isCompleted = completedIds.has(task.id);
-            const isProcessing = loadingId === task.id;
-
-            return (
-              <Card key={task.id} className={`overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 ${isCompleted ? 'opacity-60' : ''}`}>
-                {/* Platform stripe */}
-                <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
-                <CardContent className="pt-5 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg bg-gradient-to-br ${gradient} text-white`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm">{task.name}</h3>
-                        <p className="text-xs text-muted-foreground">by {task.creator.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full">
-                      <Coins className="w-3.5 h-3.5" />
-                      <span className="text-sm font-bold">+{task.rewardPerTask}</span>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  {task.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed">{task.description}</p>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-1">
-                    {isCompleted ? (
-                      <Button disabled className="w-full bg-green-500/10 text-green-500 hover:bg-green-500/10">
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Completed! +{task.rewardPerTask} coins
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full"
-                        onClick={() => handleComplete(task)}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <>Verifying...</>
-                        ) : (
-                          <>
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Complete & Earn {task.rewardPerTask} Coins
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {tasks.map((task) => (
+            <VideoCard 
+              key={task.id}
+              task={task as any}
+              isCompleted={completedIds.has(task.id)}
+              onClick={() => handleTaskClick(task)}
+            />
+          ))}
         </div>
       )}
+
+      <VideoModal 
+        task={selectedTask as any}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onComplete={handleTaskComplete}
+      />
     </div>
   );
 }

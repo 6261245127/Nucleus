@@ -45,11 +45,11 @@ export async function POST(req: NextRequest) {
       expiresIn: '7d',
     });
 
-    return NextResponse.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } }, { status: 201 });
+    return NextResponse.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, onboardingCompleted: user.onboardingCompleted, niches: user.niches } }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ message: 'Invalid input', errors: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ message: 'Internal server error: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }

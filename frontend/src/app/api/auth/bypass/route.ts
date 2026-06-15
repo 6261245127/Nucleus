@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       expiresIn: '7d',
     });
 
-    return NextResponse.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    return NextResponse.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, onboardingCompleted: user.onboardingCompleted, niches: user.niches } });
   } catch (error) {
     console.error('Bypass login error:', error);
     return NextResponse.json({ message: 'Internal server error: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });

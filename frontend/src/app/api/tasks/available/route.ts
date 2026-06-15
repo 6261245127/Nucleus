@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
       where: {
         status: 'ACTIVE',
         id: { notIn: completedIds },
-        endDate: { gte: new Date() },
+        OR: [
+          { adminEndDate: null },
+          { adminEndDate: { gte: new Date() } }
+        ]
       },
       orderBy: { createdAt: 'desc' },
       select: {

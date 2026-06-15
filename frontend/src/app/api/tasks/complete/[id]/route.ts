@@ -11,6 +11,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const viewerId = authUser.id;
     const { id: campaignId } = await params;
+    const body = await req.json().catch(() => ({}));
+
+    // Expecting progress from the in-app player (100 means completed the requirement)
+    if (body.progress !== 100) {
+      return NextResponse.json({ message: 'Task verification failed. You did not watch long enough or skipped.' }, { status: 400 });
+    }
 
     const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
     if (!campaign || campaign.status !== 'ACTIVE') {
@@ -24,20 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ message: 'You have already completed this task' }, { status: 400 });
     }
 
-    if (campaign.dailyLimit) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayCount = await prisma.task.count({
-        where: {
-          campaignId,
-          createdAt: { gte: todayStart },
-        },
-      });
-      if (todayCount >= campaign.dailyLimit) {
-        return NextResponse.json({ message: 'Daily limit reached for this campaign' }, { status: 400 });
-      }
-    }
-
+    // dailyLimit feature has been removed from schema.
     const totalSpent = await prisma.task.aggregate({
       where: { campaignId, status: { in: ['COMPLETED', 'VERIFIED'] } },
       _sum: { rewardAmount: true },

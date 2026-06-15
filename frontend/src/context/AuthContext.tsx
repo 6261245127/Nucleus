@@ -10,6 +10,8 @@ interface User {
   name: string;
   email: string;
   role: Role;
+  onboardingCompleted?: boolean;
+  niches?: string[];
 }
 
 interface AuthContextType {

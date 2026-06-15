@@ -12,8 +12,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login');
+    if (!isLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (!user.onboardingCompleted && user.role !== 'ADMIN') {
+        router.push('/onboarding');
+      }
     }
   }, [user, isLoading, router]);
 

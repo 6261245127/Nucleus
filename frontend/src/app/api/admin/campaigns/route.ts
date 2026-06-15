@@ -11,19 +11,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const campaigns = await prisma.campaign.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        creator: {
-          select: { name: true, email: true }
-        },
-        _count: {
-          select: { tasks: true }
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+
+    const [campaigns, total] = await Promise.all([
+      prisma.campaign.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          creator: {
+            select: { name: true, email: true }
+          },
+          _count: {
+            select: { tasks: true }
+          }
         }
+      }),
+      prisma.campaign.count()
+    ]);
+
+    return NextResponse.json({
+      campaigns,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
       }
     });
-
-    return NextResponse.json(campaigns);
   } catch (error) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }

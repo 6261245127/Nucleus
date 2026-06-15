@@ -39,7 +39,13 @@ export default function RegisterPage() {
       }
 
       login(data.token, data.user);
-      router.push('/dashboard');
+      if (data.user.role === 'ADMIN') {
+        router.push('/dashboard/admin');
+      } else if (data.user.role === 'CREATOR') {
+        router.push('/dashboard/creator');
+      } else {
+        router.push('/dashboard/viewer');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

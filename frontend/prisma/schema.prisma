@@ -24,6 +24,7 @@ enum CampaignStatus {
 
 enum TaskStatus {
   PENDING
+  IN_PROGRESS
   COMPLETED
   VERIFIED
   REJECTED
@@ -53,6 +54,12 @@ enum SubscriptionTier {
   ENTERPRISE
 }
 
+enum UserAccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -61,12 +68,19 @@ model User {
   name         String
   role         Role     @default(VIEWER)
   isVerified   Boolean  @default(false)
+  accountStatus UserAccountStatus @default(ACTIVE)
+  lastLogin    DateTime?
   avatarUrl    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  niches              String[] @default([])
+  preferences         Json?
+  onboardingCompleted Boolean  @default(false)
+
   // Relations
   wallet         Wallet?
+  userStat       UserStat?
   campaigns      Campaign[]
   tasksCompleted Task[]
   referralsMade  Referral[]     @relation("Referrer")
@@ -74,7 +88,21 @@ model User {
   withdrawals    Withdrawal[]
   notifications  Notification[]
   auditLogs      AuditLog[]
+  auditLogsTargeted AuditLog[] @relation("TargetUser")
   subscription   Subscription?
+
+  @@index([role])
+}
+
+model UserStat {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastTaskDate    DateTime?
+  level           Int      @default(1)
+  totalTasks      Int      @default(0)
 }
 
 model Subscription {
@@ -110,6 +138,8 @@ model Transaction {
   referenceId String? // e.g. Task ID, Campaign ID, Withdrawal ID
   description String?
   createdAt   DateTime        @default(now())
+
+  @@index([walletId, createdAt(sort: Desc)])
 }
 
 model Campaign {
@@ -131,6 +161,8 @@ model Campaign {
   updatedAt     DateTime       @updatedAt
 
   tasks Task[]
+
+  @@index([status, creatorId])
 }
 
 model Task {
@@ -143,6 +175,9 @@ model Task {
   rewardAmount Float
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  @@index([viewerId, status])
+  @@index([campaignId])
 }
 
 model Referral {
@@ -182,13 +217,15 @@ model Notification {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String
-  resource  String
-  details   Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  targetUserId String?
+  targetUser   User?    @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  action       String
+  resource     String
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
 }
