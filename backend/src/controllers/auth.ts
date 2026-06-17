@@ -37,10 +37,20 @@ export const register = async (req: Request, res: Response) => {
         email,
         passwordHash,
         role,
+        signupBonusAwarded: true,
         wallet: {
           create: {
-            coinBalance: 0,
+            coinBalance: 1500,
             rewardBalance: 0,
+            transactions: {
+              create: [
+                {
+                  amount: 1500,
+                  type: 'BONUS_REWARD',
+                  description: 'Signup Bonus',
+                }
+              ]
+            }
           }
         }
       },
@@ -88,14 +98,18 @@ export const login = async (req: Request, res: Response) => {
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { token, role } = req.body;
+    const { accessToken, role } = req.body;
     
-    const ticket = await googleClient.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     
-    const payload = ticket.getPayload();
+    if (!googleRes.ok) {
+      return res.status(400).json({ message: 'Invalid Google token' });
+    }
+    
+    const payload = await googleRes.json();
+
     if (!payload || !payload.email) {
       return res.status(400).json({ message: 'Invalid Google token' });
     }
@@ -113,22 +127,60 @@ export const googleLogin = async (req: Request, res: Response) => {
           avatarUrl: picture,
           role: role === 'CREATOR' ? 'CREATOR' : 'VIEWER',
           isVerified: true,
+          signupBonusAwarded: true,
           wallet: {
             create: {
-              coinBalance: 0,
+              coinBalance: 1500,
               fiatBalance: 0,
               rewardBalance: 0,
+              transactions: {
+                create: [
+                  {
+                    amount: 1500,
+                    type: 'BONUS_REWARD',
+                    description: 'Signup Bonus',
+                  }
+                ]
+              }
             }
           }
         },
       });
+    } else if (!user.signupBonusAwarded) {
+      // Legacy user who hasn't received the bonus yet, give it to them atomically
+      await prisma.$transaction(async (tx) => {
+        let wallet = await tx.wallet.findUnique({ where: { userId: user.id } });
+        if (!wallet) {
+          wallet = await tx.wallet.create({
+            data: { userId: user.id, coinBalance: 0, fiatBalance: 0, rewardBalance: 0 }
+          });
+        }
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { coinBalance: { increment: 1500 } }
+        });
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: 1500,
+            type: 'BONUS_REWARD',
+            description: 'Signup Bonus',
+          }
+        });
+        await tx.user.update({
+          where: { id: user.id },
+          data: { signupBonusAwarded: true }
+        });
+      });
+      // Re-fetch user so JWT has latest state
+      user = await prisma.user.findUnique({ where: { email } }) as any;
     }
 
-    const jwtToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', {
+    const jwtToken = jwt.sign({ id: user!.id, role: user!.role }, process.env.JWT_SECRET || 'fallback_secret', {
       expiresIn: '7d',
     });
 
-    res.json({ token: jwtToken, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token: jwtToken, user: { id: user!.id, name: user!.name, email: user!.email, role: user!.role } });
   } catch (error) {
     console.error('Google login error:', error);
     res.status(500).json({ message: 'Internal server error' });

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
     const { niches, preferences } = onboardingSchema.parse(body);
 
     const updateData: any = {
-      niches,
+      niches: {
+        set: niches
+      },
       onboardingCompleted: true
     };
 

@@ -22,7 +22,7 @@ export default function HowItWorks() {
             viewport={{ once: true }}
             className="text-4xl md:text-5xl font-bold text-white mb-6"
           >
-            How <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">CreatorBoost</span> Works
+            How <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">The Social Bite</span> Works
           </motion.h2>
           <p className="text-white/60 text-lg max-w-2xl mx-auto">
             A simple, transparent ecosystem designed to generate real growth and real rewards.

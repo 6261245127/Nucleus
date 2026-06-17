@@ -63,7 +63,7 @@ export default function FinalCTA() {
         <span 
           className="text-[12vw] md:text-[10vw] lg:text-[11vw] whitespace-nowrap leading-none font-black text-transparent bg-clip-text bg-gradient-to-b from-white/10 to-transparent blur-[1px] tracking-tighter w-full text-center"
         >
-          CREATORBOOST
+          THE SOCIAL BITE
         </span>
       </motion.div>
 
@@ -97,7 +97,7 @@ export default function FinalCTA() {
 
           {/* Description */}
           <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl mx-auto leading-relaxed">
-            CreatorBoost helps creators gain engagement while rewarding viewers for meaningful interactions. Start your journey today.
+            The Social Bite helps creators gain engagement while rewarding viewers for meaningful interactions. Start your journey today.
           </p>
           
           {/* Action Buttons */}

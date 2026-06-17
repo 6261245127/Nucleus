@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useGoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,6 +18,41 @@ export default function LoginPage() {
   
   const { login } = useAuth();
   const router = useRouter();
+
+  const handleGoogleSuccess = async (tokenResponse: any) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Google Login failed');
+
+      login(data.token, data.user);
+      if (!data.user.role || data.user.role === 'VIEWER' && !data.user.onboardingCompleted) {
+         router.push('/onboarding');
+      } else if (data.user.role === 'ADMIN') {
+        router.push('/dashboard/admin');
+      } else if (data.user.role === 'CREATOR') {
+        router.push('/dashboard/creator');
+      } else {
+        router.push('/dashboard/viewer');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => setError('Google Login Failed'),
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +77,8 @@ export default function LoginPage() {
         router.push('/dashboard/admin');
       } else if (data.user.role === 'CREATOR') {
         router.push('/dashboard/creator');
+      } else if (!data.user.onboardingCompleted) {
+        router.push('/onboarding');
       } else {
         router.push('/dashboard/viewer');
       }
@@ -57,7 +95,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">Welcome back</CardTitle>
           <CardDescription>
-            Enter your email to sign in to your CreatorBoost account
+            Enter your email to sign in to your The Social Bite account
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -104,7 +142,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="button" variant="outline" className="w-full mb-6" onClick={() => alert('Google login not fully implemented')}>
+            <Button type="button" variant="outline" className="w-full mb-6" onClick={() => loginWithGoogle()} disabled={isLoading}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

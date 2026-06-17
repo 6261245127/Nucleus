@@ -20,7 +20,7 @@ export default function FAQ() {
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-white mb-6">Frequently Asked Questions</h2>
-          <p className="text-white/60 text-lg">Everything you need to know about CreatorBoost.</p>
+          <p className="text-white/60 text-lg">Everything you need to know about The Social Bite.</p>
         </div>
 
         <div className="space-y-4">

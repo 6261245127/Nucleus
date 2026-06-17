@@ -64,15 +64,6 @@ export default function TaskMarketplace() {
 
     if (token) fetchTasks();
     else {
-      // Mock tasks for dev mode
-      setTasks([
-        { id: '1', name: 'Watch Summer Reel', platform: 'INSTAGRAM', url: 'https://instagram.com/reel/123', description: 'Watch this reel and leave a genuine comment.', rewardPerTask: 5, creator: { name: 'FashionBrand' } },
-        { id: '2', name: 'Like Tech Review Video', platform: 'YOUTUBE', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', description: 'Watch at least 30 seconds and like the video.', rewardPerTask: 10, creator: { name: 'TechGuru' } },
-        { id: '3', name: 'Share Product Post', platform: 'FACEBOOK', url: 'https://facebook.com/post/456', description: 'View the post and share to your story.', rewardPerTask: 3, creator: { name: 'ShopEasy' } },
-        { id: '4', name: 'Follow & Engage on Threads', platform: 'THREADS', url: 'https://threads.net/@brand', description: 'Follow the account and reply to latest thread.', rewardPerTask: 8, creator: { name: 'NewsDaily' } },
-        { id: '5', name: 'Watch Dance Reel', platform: 'INSTAGRAM', url: 'https://instagram.com/reel/789', description: 'Watch the full reel and double-tap.', rewardPerTask: 4, creator: { name: 'DanceStudio' } },
-        { id: '6', name: 'Subscribe & Watch Tutorial', platform: 'YOUTUBE', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', description: 'Subscribe to the channel and watch the full tutorial.', rewardPerTask: 15, creator: { name: 'CodeAcademy' } },
-      ]);
       setIsLoading(false);
     }
   }, [token]);
@@ -84,10 +75,7 @@ export default function TaskMarketplace() {
   };
 
   const handleTaskComplete = async (taskId: string) => {
-    if (!token || token === 'mock-token-123') {
-      setCompletedIds((prev) => new Set([...prev, taskId]));
-      return;
-    }
+    if (!token) return;
 
     try {
       const res = await fetch(`/api/tasks/complete/${taskId}`, {

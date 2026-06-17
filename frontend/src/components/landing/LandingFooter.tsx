@@ -11,7 +11,7 @@ export default function LandingFooter() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-white tracking-tight">CreatorBoost</span>
+              <span className="text-xl font-bold text-white tracking-tight">The Social Bite</span>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed mb-6">
               The premier ecosystem for authentic creator growth and viewer rewards. Connecting audiences with the creators they love.
@@ -64,7 +64,7 @@ export default function LandingFooter() {
         </div>
         
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-white/40 text-sm">© 2026 CreatorBoost Inc. All rights reserved.</p>
+          <p className="text-white/40 text-sm">© 2026 The Social Bite Inc. All rights reserved.</p>
           <div className="flex items-center gap-6 text-sm text-white/40">
             <span>Status: All systems operational</span>
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

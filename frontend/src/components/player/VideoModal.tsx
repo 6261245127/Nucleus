@@ -42,8 +42,21 @@ const NativeYouTubePlayer = memo(({ url, onProgress, onReady, isPlaying, setIsPl
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
-  const watchedCounterRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+  const maxTimeRef = useRef<number>(0);
   const hasStartedRef = useRef(false);
+
+  const onProgressRef = useRef(onProgress);
+  const onReadyRef = useRef(onReady);
+  const setIsPlayingRef = useRef(setIsPlaying);
+  const onStartPlaybackRef = useRef(onStartPlayback);
+
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+    onReadyRef.current = onReady;
+    setIsPlayingRef.current = setIsPlaying;
+    onStartPlaybackRef.current = onStartPlayback;
+  }, [onProgress, onReady, setIsPlaying, onStartPlayback]);
 
   useEffect(() => {
     const videoId = extractYouTubeId(url);
@@ -68,30 +81,54 @@ const NativeYouTubePlayer = memo(({ url, onProgress, onReady, isPlaying, setIsPl
         },
         events: {
           onReady: () => {
-            onReady();
+            onReadyRef.current();
           },
           onStateChange: (event: any) => {
             if (event.data === 1) { // PLAYING
-              setIsPlaying(true);
+              setIsPlayingRef.current(true);
               if (!hasStartedRef.current) {
                 hasStartedRef.current = true;
-                onStartPlayback();
+                onStartPlaybackRef.current();
               }
+              // Clear any existing interval to prevent duplicates
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              
               intervalRef.current = setInterval(() => {
-                if (playerRef.current && playerRef.current.getDuration) {
-                  watchedCounterRef.current += 1;
+                if (playerRef.current && playerRef.current.getDuration && playerRef.current.getCurrentTime) {
+                  const currentTime = playerRef.current.getCurrentTime();
                   const totalDuration = playerRef.current.getDuration();
+                  
+                  // Anti-cheat: If user skips forward by more than 2 seconds, force them back
+                  if (currentTime - maxTimeRef.current > 2) {
+                    playerRef.current.seekTo(maxTimeRef.current, true);
+                  } else {
+                    maxTimeRef.current = Math.max(maxTimeRef.current, currentTime);
+                  }
+                  
                   if (totalDuration > 0) {
-                    onProgress({ 
-                      watchedSeconds: watchedCounterRef.current, 
+                    onProgressRef.current({ 
+                      watchedSeconds: maxTimeRef.current, 
                       totalDuration: totalDuration 
                     });
                   }
                 }
-              }, 1000);
-            } else {
-              setIsPlaying(false);
-              clearInterval(intervalRef.current);
+              }, 500); // Check every 500ms for tighter anti-cheat
+            } else if (event.data === 3) { // BUFFERING
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              setIsPlayingRef.current(true);
+            } else if (event.data === 0) { // ENDED
+              // If video naturally ended, they reached 100%
+              if (playerRef.current && playerRef.current.getDuration) {
+                 onProgressRef.current({ 
+                    watchedSeconds: playerRef.current.getDuration(), 
+                    totalDuration: playerRef.current.getDuration() 
+                 });
+              }
+              setIsPlayingRef.current(false);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+            } else { // PAUSED, UNSTARTED
+              setIsPlayingRef.current(false);
+              if (intervalRef.current) clearInterval(intervalRef.current);
             }
           }
         }
@@ -115,7 +152,7 @@ const NativeYouTubePlayer = memo(({ url, onProgress, onReady, isPlaying, setIsPl
         playerRef.current.destroy();
       }
     };
-  }, [url, onReady, onProgress, setIsPlaying, onStartPlayback]);
+  }, [url]);
 
   return (
     <div className="w-full h-full relative" onContextMenu={(e) => e.preventDefault()}>
@@ -136,7 +173,7 @@ export default function VideoModal({ task, isOpen, isCompleted = false, onClose,
   const [hasNotifiedStart, setHasNotifiedStart] = useState(false);
   
   const [timer, setTimer] = useState(0);
-  const REQUIRED_PERCENTAGE = 80;
+  const REQUIRED_PERCENTAGE = 100;
   const REQUIRED_TIMER_SECONDS = 10;
 
   const { token } = useAuth();

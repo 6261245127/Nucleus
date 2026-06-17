@@ -21,6 +21,8 @@ import { AuthProvider } from "@/context/AuthContext";
 
 import { Toaster } from "@/components/ui/sonner";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,10 +33,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

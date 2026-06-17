@@ -18,7 +18,7 @@ export default function CreatorShowcase() {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Top Performing Creators</h2>
           <p className="text-white/60 text-lg max-w-2xl mx-auto">
-            Join the ranks of top creators who use CreatorBoost to explode their growth and engagement.
+            Join the ranks of top creators who use The Social Bite to explode their growth and engagement.
           </p>
         </div>
 

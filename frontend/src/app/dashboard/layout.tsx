@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isLoading) {
       if (!user) {
         router.push('/login');
-      } else if (!user.onboardingCompleted && user.role !== 'ADMIN') {
+      } else if (!user.onboardingCompleted && user.role === 'VIEWER') {
         router.push('/onboarding');
       }
     }
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-64 border-r border-border bg-card/50 backdrop-blur flex flex-col hidden md:flex">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-            CreatorBoost
+            The Social Bite
           </span>
         </div>
         
@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Mobile Header */}
         <header className="h-16 flex md:hidden items-center justify-between px-4 border-b border-border bg-card">
-          <span className="text-lg font-bold">CreatorBoost</span>
+          <span className="text-lg font-bold">The Social Bite</span>
           <Button variant="ghost" size="icon" onClick={logout}>
             <LogOut className="w-5 h-5 text-destructive" />
           </Button>

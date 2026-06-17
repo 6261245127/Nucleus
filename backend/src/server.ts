@@ -18,7 +18,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'CreatorBoost API is running' });
+  res.json({ status: 'ok', message: 'The Social Bite API is running' });
 });
 
 app.listen(PORT, () => {

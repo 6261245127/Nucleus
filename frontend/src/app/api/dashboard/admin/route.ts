@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     // Platform revenue (Assume some % of spent, for now we sum all fiat deposits)
     // Or just a metric showing total fiat deposited
     const totalFiatDeposits = await prisma.transaction.aggregate({
-      where: { type: 'FIAT_DEPOSIT' },
+      where: { type: 'DEPOSIT' },
       _sum: { amount: true }
     });
 

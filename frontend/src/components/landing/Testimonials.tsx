@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 const testimonials = [
   { 
-    text: "CreatorBoost helped me jump from 10k to 50k subscribers in just two months. The engagement is completely real and my retention rates actually went up.",
+    text: "The Social Bite helped me jump from 10k to 50k subscribers in just two months. The engagement is completely real and my retention rates actually went up.",
     name: "Tech Reviewer Max",
     role: "YouTube Creator",
     image: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop"
@@ -32,7 +32,7 @@ export default function Testimonials() {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Loved by Thousands</h2>
           <p className="text-white/60 text-lg max-w-2xl mx-auto">
-            Don't just take our word for it. Hear from the creators and viewers who use CreatorBoost daily.
+            Don't just take our word for it. Hear from the creators and viewers who use The Social Bite daily.
           </p>
         </div>
 

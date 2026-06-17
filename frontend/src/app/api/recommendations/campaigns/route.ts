@@ -20,9 +20,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
+    const completedCampaignIds = await prisma.task.findMany({
+      where: { viewerId: authUser.id },
+      select: { campaignId: true },
+    });
+    const completedIds = completedCampaignIds.map((t) => t.campaignId);
+
     // Fetch active campaigns
     const campaigns = await prisma.campaign.findMany({
-      where: { status: 'ACTIVE' },
+      where: { 
+        status: 'ACTIVE',
+        id: { notIn: completedIds },
+        OR: [
+          { adminEndDate: null },
+          { adminEndDate: { gte: new Date() } }
+        ]
+      },
       include: {
         creator: { select: { name: true, avatarUrl: true } },
         _count: { select: { tasks: true } }

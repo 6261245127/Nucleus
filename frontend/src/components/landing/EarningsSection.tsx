@@ -67,7 +67,7 @@ export default function EarningsSection() {
               Turn your free time into <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">real income.</span>
             </h2>
             <p className="text-lg text-white/60">
-              CreatorBoost isn't just a growth platform—it's an economy. Viewers earn for their attention, and creators generate massive ROI on their campaigns.
+              The Social Bite isn't just a growth platform—it's an economy. Viewers earn for their attention, and creators generate massive ROI on their campaigns.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-6">

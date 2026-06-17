@@ -80,6 +80,48 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       });
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const userStat = await tx.userStat.findUnique({ where: { userId: viewerId } });
+      let newStreak = userStat?.currentStreak || 0;
+      
+      if (userStat?.lastTaskDate) {
+        const lastTaskDate = new Date(userStat.lastTaskDate);
+        lastTaskDate.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil(Math.abs(today.getTime() - lastTaskDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) newStreak += 1;
+        else if (diffDays > 1) newStreak = 1;
+      } else {
+        newStreak = 1;
+      }
+      
+      const newTotalTasks = (userStat?.totalTasks || 0) + 1;
+      let newLevel = 1;
+      if (newTotalTasks >= 100) newLevel = 5;
+      else if (newTotalTasks >= 50) newLevel = 4;
+      else if (newTotalTasks >= 10) newLevel = 3;
+      else if (newTotalTasks >= 5) newLevel = 2;
+
+      await tx.userStat.upsert({
+        where: { userId: viewerId },
+        update: {
+          totalTasks: { increment: 1 },
+          lastTaskDate: new Date(),
+          currentStreak: newStreak,
+          longestStreak: Math.max(userStat?.longestStreak || 0, newStreak),
+          level: newLevel,
+        },
+        create: {
+          userId: viewerId,
+          totalTasks: 1,
+          lastTaskDate: new Date(),
+          currentStreak: 1,
+          longestStreak: 1,
+          level: 1,
+        }
+      });
+
       return task;
     });
 

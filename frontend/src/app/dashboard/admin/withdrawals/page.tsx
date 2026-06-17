@@ -1,36 +1,59 @@
 'use client';
 
 import { useState } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Clock, Banknote } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Banknote, Loader2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface WithdrawalData {
   id: string;
-  userName: string;
-  email: string;
   amount: number;
   method: string;
   status: string;
   createdAt: string;
+  user: {
+    name: string;
+    email: string;
+  };
 }
 
+const fetcher = (url: string, token: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
+
 export default function AdminWithdrawalsPage() {
+  const { token } = useAuth();
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const withdrawals: WithdrawalData[] = [
-    { id: '1', userName: 'John Smith', email: 'john@example.com', amount: 500, method: 'UPI', status: 'PENDING', createdAt: '2026-05-30' },
-    { id: '2', userName: 'Sarah Connor', email: 'sarah@example.com', amount: 1200, method: 'BANK_TRANSFER', status: 'PENDING', createdAt: '2026-05-29' },
-    { id: '3', userName: 'Alex Turner', email: 'alex@example.com', amount: 300, method: 'UPI', status: 'REVIEW', createdAt: '2026-05-28' },
-    { id: '4', userName: 'Maria Lopez', email: 'maria@example.com', amount: 800, method: 'PAYPAL', status: 'APPROVED', createdAt: '2026-05-25' },
-    { id: '5', userName: 'Mike Johnson', email: 'mike@example.com', amount: 2000, method: 'BANK_TRANSFER', status: 'PAID', createdAt: '2026-05-20' },
-    { id: '6', userName: 'Emily Chen', email: 'emily@example.com', amount: 150, method: 'UPI', status: 'REJECTED', createdAt: '2026-05-18' },
-  ];
+  const { data, error, isLoading, mutate } = useSWR(
+    token ? ['/api/admin/withdrawals', token] : null,
+    ([url, t]) => fetcher(url, t)
+  );
 
+  const withdrawals: WithdrawalData[] = data?.data || [];
   const filtered = statusFilter === 'ALL' ? withdrawals : withdrawals.filter((w) => w.status === statusFilter);
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      const res = await fetch(`/api/admin/withdrawals/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        mutate();
+      }
+    } catch (e) {
+      console.error('Failed to update status', e);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -52,6 +75,10 @@ export default function AdminWithdrawalsPage() {
     }
   };
 
+  if (isLoading) {
+    return <div className="flex h-64 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,16 +89,16 @@ export default function AdminWithdrawalsPage() {
       {/* Summary Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Pending', count: withdrawals.filter(w => w.status === 'PENDING').length, amount: '₹1,700', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-          { label: 'Under Review', count: withdrawals.filter(w => w.status === 'REVIEW').length, amount: '₹300', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-          { label: 'Approved', count: withdrawals.filter(w => w.status === 'APPROVED').length, amount: '₹800', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Total Paid', count: withdrawals.filter(w => w.status === 'PAID').length, amount: '₹2,000', color: 'text-green-500', bg: 'bg-green-500/10' },
+          { label: 'Pending', count: withdrawals.filter(w => w.status === 'PENDING').length, amount: withdrawals.filter(w => w.status === 'PENDING').reduce((acc, w) => acc + w.amount, 0), color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+          { label: 'Under Review', count: withdrawals.filter(w => w.status === 'REVIEW').length, amount: withdrawals.filter(w => w.status === 'REVIEW').reduce((acc, w) => acc + w.amount, 0), color: 'text-orange-500', bg: 'bg-orange-500/10' },
+          { label: 'Approved', count: withdrawals.filter(w => w.status === 'APPROVED').length, amount: withdrawals.filter(w => w.status === 'APPROVED').reduce((acc, w) => acc + w.amount, 0), color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: 'Total Paid', count: withdrawals.filter(w => w.status === 'PAID').length, amount: withdrawals.filter(w => w.status === 'PAID').reduce((acc, w) => acc + w.amount, 0), color: 'text-green-500', bg: 'bg-green-500/10' },
         ].map((item, i) => (
           <Card key={i}>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">{item.label}</p>
               <p className={`text-2xl font-bold ${item.color}`}>{item.count}</p>
-              <p className="text-xs text-muted-foreground">{item.amount}</p>
+              <p className="text-xs text-muted-foreground">{item.amount.toLocaleString()} 🪙</p>
             </CardContent>
           </Card>
         ))}
@@ -110,37 +137,43 @@ export default function AdminWithdrawalsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((w) => (
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No withdrawal requests found.
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map((w) => (
                 <TableRow key={w.id}>
                   <TableCell>
                     <div>
-                      <p className="text-sm font-medium">{w.userName}</p>
-                      <p className="text-xs text-muted-foreground">{w.email}</p>
+                      <p className="text-sm font-medium">{w.user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{w.user?.email}</p>
                     </div>
                   </TableCell>
                   <TableCell className="font-bold">{w.amount} 🪙</TableCell>
                   <TableCell>{getMethodBadge(w.method)}</TableCell>
                   <TableCell>{getStatusBadge(w.status)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{w.createdAt}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(w.createdAt), { addSuffix: true })}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       {w.status === 'PENDING' && (
-                        <Button variant="ghost" size="sm" className="text-orange-500 hover:bg-orange-500/10">
+                        <Button variant="ghost" size="sm" className="text-orange-500 hover:bg-orange-500/10" onClick={() => updateStatus(w.id, 'REVIEW')}>
                           Review
                         </Button>
                       )}
                       {(w.status === 'PENDING' || w.status === 'REVIEW') && (
                         <>
-                          <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10">
+                          <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => updateStatus(w.id, 'APPROVED')}>
                             <CheckCircle className="w-4 h-4 mr-1" /> Approve
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-500/10">
+                          <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-500/10" onClick={() => updateStatus(w.id, 'REJECTED')}>
                             <XCircle className="w-4 h-4 mr-1" /> Reject
                           </Button>
                         </>
                       )}
                       {w.status === 'APPROVED' && (
-                        <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10">
+                        <Button variant="ghost" size="sm" className="text-green-500 hover:bg-green-500/10" onClick={() => updateStatus(w.id, 'PAID')}>
                           <Banknote className="w-4 h-4 mr-1" /> Mark Paid
                         </Button>
                       )}

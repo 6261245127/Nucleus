@@ -2,15 +2,14 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, Trophy, Users, TrendingUp, Loader2, Target, Calendar, Sparkles } from 'lucide-react';
+import { Coins, Trophy, Users, TrendingUp, Loader2, Target, Calendar, Sparkles, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import useSWR from 'swr';
 import { motion } from 'framer-motion';
 
 import RecommendedCampaigns from '@/components/viewer/RecommendedCampaigns';
-import NicheInsights from '@/components/viewer/NicheInsights';
-import CreatorDiscovery from '@/components/viewer/CreatorDiscovery';
 
 const fetcher = (url: string, token: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json());
 
@@ -26,7 +25,7 @@ export default function ViewerDashboard() {
   const stats = [
     { title: 'Total Coins Earned', value: data?.totalCoins || 0, icon: Coins, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
     { title: 'Tasks Completed', value: data?.tasksCompleted || 0, icon: Trophy, color: 'text-green-400', bg: 'bg-green-500/20' },
-    { title: 'Referral Bonus', value: data?.referralEarnings || 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+    { title: 'Referral Bonus', value: data?.referralEarnings || 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/20', isReferral: true },
     { title: 'This Week', value: `+${data?.weeklyEarnings || 0}`, icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/20' },
   ];
 
@@ -44,13 +43,13 @@ export default function ViewerDashboard() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-4">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-white/70">Welcome back to CreatorBoost</span>
+              <span className="text-xs font-medium text-white/70">Welcome back to The Social Bite</span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-white">
               Hey, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">{user?.name}</span> 👋
             </h1>
             <p className="text-white/60 mt-2 text-lg">
-              You have <strong className="text-white">12 new tasks</strong> waiting for you today.
+              {isLoading ? 'Loading your daily tasks...' : 'Ready to earn some coins? Check out the tasks below.'}
             </p>
           </div>
           <Link href="/dashboard/viewer/tasks">
@@ -72,8 +71,8 @@ export default function ViewerDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card className="relative overflow-hidden bg-[#0A1128]/80 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300 shadow-xl group">
-                <CardContent className="p-6">
+              <Card className="relative overflow-hidden bg-[#0A1128]/80 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300 shadow-xl group h-full flex flex-col">
+                <CardContent className="p-6 flex-1 flex flex-col">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-white/50 mb-1">{stat.title}</p>
@@ -87,6 +86,23 @@ export default function ViewerDashboard() {
                       <Icon className={`w-6 h-6 ${stat.color}`} />
                     </div>
                   </div>
+                  {stat.isReferral && user?.id && (
+                    <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                      <p className="text-xs text-white/40">Invite friends & earn</p>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                        onClick={() => {
+                          const referralLink = `${window.location.origin}/register?ref=${user.id}`;
+                          navigator.clipboard.writeText(referralLink);
+                          toast.success('Referral link copied!');
+                        }}
+                      >
+                        <Copy className="w-3 h-3 mr-1" /> Copy Link
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 to-secondary/50 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
               </Card>
@@ -122,7 +138,9 @@ export default function ViewerDashboard() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-bold text-white">3/5</span>
+                  <span className="text-sm font-bold text-white">
+                    {Math.min(data?.todayTasksCompleted || 0, 5)}/5
+                  </span>
                 </div>
               </div>
               
@@ -143,7 +161,6 @@ export default function ViewerDashboard() {
             </CardContent>
           </Card>
           
-          <NicheInsights />
         </div>
 
         {/* Gamification & Progress */}
@@ -208,8 +225,6 @@ export default function ViewerDashboard() {
               })()}
             </CardContent>
           </Card>
-          
-          <CreatorDiscovery />
         </div>
       </div>
     </motion.div>

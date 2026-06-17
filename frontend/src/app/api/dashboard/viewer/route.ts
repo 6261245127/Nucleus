@@ -16,9 +16,13 @@ export async function GET(req: NextRequest) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const [
       wallet,
       tasksCompleted,
+      todayTasksCompleted,
       referralEarnings,
       weeklyEarnings,
       recentEarnings,
@@ -30,6 +34,9 @@ export async function GET(req: NextRequest) {
       }),
       prisma.task.count({
         where: { viewerId: userId, status: 'COMPLETED' }
+      }),
+      prisma.task.count({
+        where: { viewerId: userId, status: 'COMPLETED', createdAt: { gte: today } }
       }),
       prisma.transaction.aggregate({
         where: { wallet: { userId }, type: 'REFERRAL_REWARD' },
@@ -62,6 +69,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       totalCoins: wallet?.coinBalance || 0,
       tasksCompleted,
+      todayTasksCompleted,
       referralEarnings: referralEarnings._sum.amount || 0,
       weeklyEarnings: weeklyEarnings._sum.amount || 0,
       recentEarnings: recentEarnings.map(tx => ({

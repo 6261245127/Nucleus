@@ -58,7 +58,11 @@ export default function CreatorDashboard() {
               Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">{user?.name}</span>
             </h1>
             <p className="text-white/60 mt-2 text-lg">
-              Your active campaigns are driving <strong className="text-green-400">+24% more engagement</strong> this week.
+              {isLoading ? 'Loading your metrics...' : data?.activeCampaigns > 0 ? (
+                <>You have <strong className="text-white">{data.activeCampaigns} active campaigns</strong> running right now.</>
+              ) : (
+                'Create your first campaign to start driving engagement.'
+              )}
             </p>
           </div>
           <Link href="/dashboard/creator/campaigns/new">

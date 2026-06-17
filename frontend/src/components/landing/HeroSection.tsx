@@ -28,7 +28,7 @@ export default function HeroSection() {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-6"
           >
             <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
-            <span className="text-sm font-medium text-white/80">CreatorBoost 2.0 is Live</span>
+            <span className="text-sm font-medium text-white/80">The Social Bite 2.0 is Live</span>
           </motion.div>
           
           <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-white/60 tracking-tight leading-[1.1] mb-6">

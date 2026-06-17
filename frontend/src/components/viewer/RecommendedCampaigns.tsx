@@ -60,7 +60,13 @@ export default function RecommendedCampaigns() {
         throw new Error(data.message || 'Failed to verify task completion');
       }
       
-      setCompletedIds(prev => new Set([...prev, taskId]));
+      // Remove from recommendations instead of just marking as completed
+      setCampaigns(prev => prev.filter(c => c.id !== taskId));
+      
+      // Update global SWR cache for dashboard stats
+      import('swr').then(({ mutate }) => {
+        mutate(['/api/dashboard/viewer', token]);
+      });
     } catch (err: any) {
       alert(err.message);
       throw err;
