@@ -32,8 +32,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Check local storage for token
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    let storedToken = null;
+    let storedUser = null;
+    try {
+      storedToken = localStorage.getItem('token');
+      storedUser = localStorage.getItem('user');
+    } catch (e) {
+      console.warn('localStorage not available');
+    }
 
     if (storedToken && storedUser) {
       setToken(storedToken);
@@ -49,15 +55,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    try {
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(newUser));
+    } catch (e) {
+      console.warn('localStorage not available');
+    }
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } catch (e) {
+      console.warn('localStorage not available');
+    }
     router.push('/login');
   };
 

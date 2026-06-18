@@ -230,3 +230,112 @@ model AuditLog {
   userAgent    String?
   createdAt    DateTime @default(now())
 }
+
+model CMSSetting {
+  id            String   @id @default("global-settings")
+  websiteName   String   @default("The Social Bite")
+  logoUrl       String?
+  faviconUrl    String?
+  websiteUrl    String?
+  supportEmail  String?
+  contactNumber String?
+  socialLinks   Json?    // { twitter: "...", instagram: "...", youtube: "..." }
+  copyrightText String   @default("© 2026 The Social Bite Inc. All rights reserved.")
+  updatedAt     DateTime @updatedAt
+}
+
+model CMSSection {
+  id        String   @id @default(uuid())
+  type      String   // HERO, TRUST, HOW_IT_WORKS, FEATURES, AI_RECOMMENDATIONS, CREATOR_SHOWCASE, MARKETPLACE_PREVIEW, EARNINGS, TESTIMONIALS, PRICING, FAQ, FINAL_CTA
+  title     String?
+  subtitle  String?
+  content   Json     // stores JSON containing section-specific fields
+  order     Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSMedia {
+  id        String   @id @default(uuid())
+  name      String
+  url       String   // e.g. /uploads/image.png
+  mimeType  String?
+  size      Int?
+  category  String?  // LOGO, FAVICON, HERO, FEATURE, CREATOR, BACKGROUND, BANNER, FOOTER, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSPricingPlan {
+  id         String   @id @default(uuid())
+  name       String
+  price      Float
+  currency   String   @default("INR")
+  period     String?  @default("/mo")
+  features   String[] @default([])
+  badgeLabel String?
+  buttonText String   @default("Get Started")
+  isPopular  Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CMSMenuItem {
+  id        String   @id @default(uuid())
+  menuType  String   // HEADER, FOOTER, SIDEBAR
+  title     String
+  url       String
+  icon      String?
+  order     Int      @default(0)
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSTestimonial {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  company   String?
+  image     String?
+  review    String
+  rating    Int      @default(5)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSFaq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CMSPageSeo {
+  id              String   @id @default(uuid())
+  pagePath        String   @unique
+  metaTitle       String
+  metaDescription String
+  ogTitle         String?
+  ogDescription   String?
+  keywords        String?
+  ogImage         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CMSAnnouncement {
+  id        String   @id @default(uuid())
+  message   String
+  link      String?
+  isActive  Boolean  @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

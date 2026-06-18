@@ -275,7 +275,7 @@ export default function AdminUsersPage() {
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span>{user.wallet?.coinBalance || 0} 🪙</span>
-                        <span className="text-xs text-muted-foreground">${user.totalEarnings || 0} earned</span>
+                        <span className="text-xs text-muted-foreground">₹{user.totalEarnings || 0} earned</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">

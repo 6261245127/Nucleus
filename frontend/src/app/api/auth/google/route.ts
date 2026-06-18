@@ -45,6 +45,12 @@ export async function POST(req: NextRequest) {
           }
         },
       });
+    } else if (role === 'CREATOR' && user.role !== 'CREATOR') {
+      // Upgrade role to CREATOR if requested during Google registration
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'CREATOR' }
+      });
     }
 
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', {

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useGoogleLogin } from '@react-oauth/google';
 
@@ -17,11 +18,16 @@ export default function RegisterPage() {
   const [role, setRole] = useState<'VIEWER' | 'CREATOR'>('VIEWER');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   
   const { login } = useAuth();
   const router = useRouter();
 
   const handleGoogleSuccess = async (tokenResponse: any) => {
+    if (!agreed) {
+      setError('You must agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
     setIsLoading(true);
     setError('');
     try {
@@ -58,6 +64,10 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreed) {
+      setError('You must agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
     setIsLoading(true);
     setError('');
 
@@ -123,7 +133,27 @@ export default function RegisterPage() {
               </Button>
             </div>
 
-            <Button type="button" variant="outline" className="w-full mb-2" onClick={() => loginWithGoogle()} disabled={isLoading}>
+            <div className="flex items-start space-x-2 mb-4 bg-muted/50 p-3 rounded-xl border border-border">
+              <Checkbox 
+                id="terms" 
+                checked={agreed} 
+                onCheckedChange={(c) => setAgreed(c as boolean)} 
+              />
+              <label
+                htmlFor="terms"
+                className="text-xs font-medium leading-none text-muted-foreground mt-0.5"
+              >
+                I agree to the <Link href="/legal/terms-of-service" className="text-primary hover:underline" target="_blank">Terms of Service</Link> and <Link href="/legal/privacy-policy" className="text-primary hover:underline" target="_blank">Privacy Policy</Link>.
+              </label>
+            </div>
+
+            <Button type="button" variant="outline" className="w-full mb-2" onClick={() => {
+              if (!agreed) {
+                setError('You must agree to the Terms of Service and Privacy Policy.');
+                return;
+              }
+              loginWithGoogle();
+            }} disabled={isLoading}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

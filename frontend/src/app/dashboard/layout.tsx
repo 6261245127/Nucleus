@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Megaphone, Wallet, LogOut, Loader2, Users, Settings, CreditCard, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Wallet, LogOut, Loader2, Users, Settings, CreditCard, ShieldCheck, Globe } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
@@ -35,6 +35,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Users', href: '/dashboard/admin/users', icon: Users },
         { name: 'Campaigns', href: '/dashboard/admin/campaigns', icon: Megaphone },
         { name: 'Withdrawals', href: '/dashboard/admin/withdrawals', icon: CreditCard },
+        { name: 'Payments', href: '/dashboard/admin/payments', icon: Wallet },
+        { name: 'CMS Control', href: '/dashboard/admin/cms', icon: Globe },
         { name: 'Settings', href: '/dashboard/admin/settings', icon: Settings },
       ]
     : user.role === 'CREATOR' 

@@ -1,12 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Coins, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Gift, Loader2 } from 'lucide-react';
 import useSWR from 'swr';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Transaction {
   id: string;
@@ -20,11 +26,18 @@ const fetcher = (url: string, token: string) => fetch(url, { headers: { Authoriz
 
 export default function ViewerWalletPage() {
   const { token } = useAuth();
+  
+  // Withdrawal State
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState<number | string>('');
+  const [withdrawMethod, setWithdrawMethod] = useState('');
+  const [withdrawDetails, setWithdrawDetails] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: walletData, error, isLoading } = useSWR(
+  const { data: walletData, error, isLoading, mutate } = useSWR(
     token ? ['/api/wallet', token] : null,
     ([url, t]) => fetcher(url, t),
-    { refreshInterval: 5000 } // Auto-refresh every 5s for real-time feel
+    { refreshInterval: 5000 }
   );
 
   const transactions: Transaction[] = walletData?.transactions || [];
@@ -44,6 +57,52 @@ export default function ViewerWalletPage() {
       case 'BONUS_REWARD': return <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">Bonus</Badge>;
       case 'WITHDRAWAL': return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Withdrawal</Badge>;
       default: return <Badge variant="outline">{type.replace('_', ' ')}</Badge>;
+    }
+  };
+
+  const handleWithdrawal = async () => {
+    const amount = Number(withdrawAmount);
+    if (!amount || amount < 500) {
+      toast.error('Minimum withdrawal amount is ₹500');
+      return;
+    }
+    if (amount > coinBalance) {
+      toast.error('Insufficient coin balance');
+      return;
+    }
+    if (!withdrawMethod || !withdrawDetails) {
+      toast.error('Please fill in all withdrawal details');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/withdrawals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount,
+          method: withdrawMethod,
+          details: { accountInfo: withdrawDetails }
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      toast.success('Withdrawal request submitted successfully');
+      setIsWithdrawModalOpen(false);
+      setWithdrawAmount('');
+      setWithdrawMethod('');
+      setWithdrawDetails('');
+      mutate(); // Refresh wallet data
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit withdrawal request');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -70,7 +129,7 @@ export default function ViewerWalletPage() {
               <p className="text-sm text-muted-foreground">Coin Balance</p>
             </div>
             <p className="text-4xl font-bold">{coinBalance.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">Available coins</p>
+            <p className="text-xs text-muted-foreground mt-1">Available coins (1 Coin = ₹1)</p>
           </CardContent>
         </Card>
 
@@ -103,9 +162,72 @@ export default function ViewerWalletPage() {
 
       {/* Withdraw Button */}
       <div className="flex justify-end">
-        <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-          Request Withdrawal
-        </Button>
+        <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
+          <Button onClick={() => setIsWithdrawModalOpen(true)} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+            Request Withdrawal
+          </Button>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Request Withdrawal</DialogTitle>
+              <DialogDescription>
+                Withdraw your earned coins to your bank account or UPI. Minimum withdrawal is ₹500.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="withdraw-amount">Amount (Coins)</Label>
+                <Input
+                  id="withdraw-amount"
+                  type="number"
+                  placeholder="e.g. 1000"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  max={coinBalance}
+                />
+                <p className="text-xs text-muted-foreground text-right">Max available: {coinBalance.toLocaleString()}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="method">Payout Method</Label>
+                <Select value={withdrawMethod} onValueChange={setWithdrawMethod}>
+                  <SelectTrigger id="method">
+                    <SelectValue placeholder="Select payout method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UPI">UPI</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">Bank Transfer (NEFT/IMPS)</SelectItem>
+                    <SelectItem value="PAYPAL">PayPal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {withdrawMethod && (
+                <div className="space-y-2">
+                  <Label htmlFor="details">
+                    {withdrawMethod === 'UPI' ? 'UPI ID' : withdrawMethod === 'PAYPAL' ? 'PayPal Email' : 'Bank Account Details'}
+                  </Label>
+                  <Input
+                    id="details"
+                    placeholder={withdrawMethod === 'UPI' ? 'example@upi' : 'Enter details...'}
+                    value={withdrawDetails}
+                    onChange={(e) => setWithdrawDetails(e.target.value)}
+                  />
+                  {withdrawMethod === 'BANK_TRANSFER' && (
+                    <p className="text-xs text-muted-foreground">Please provide Account Number and IFSC Code.</p>
+                  )}
+                </div>
+              )}
+
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleWithdrawal}
+                disabled={isSubmitting || !withdrawAmount || !withdrawMethod || !withdrawDetails || Number(withdrawAmount) < 500}
+              >
+                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : 'Submit Request'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Transaction History */}
