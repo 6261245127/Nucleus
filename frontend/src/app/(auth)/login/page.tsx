@@ -49,10 +49,26 @@ export default function LoginPage() {
     }
   };
 
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => setError('Google Login Failed'),
-  });
+  const [googleError, setGoogleError] = useState('');
+  
+  // Wrap the google login to handle missing client ID gracefully
+  const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  
+  let loginWithGoogle: any = () => {
+    setError('Google Login is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID.');
+  };
+  
+  try {
+    const googleLoginFn = useGoogleLogin({
+      onSuccess: handleGoogleSuccess,
+      onError: () => setError('Google Login Failed'),
+    });
+    if (hasGoogleClientId) {
+      loginWithGoogle = googleLoginFn;
+    }
+  } catch (e) {
+    // If useGoogleLogin throws because of missing Client ID, we catch it here
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

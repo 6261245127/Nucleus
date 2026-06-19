@@ -57,10 +57,24 @@ export default function RegisterPage() {
     }
   };
 
-  const loginWithGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => setError('Google Registration Failed'),
-  });
+  // Wrap the google login to handle missing client ID gracefully
+  const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  
+  let loginWithGoogle: any = () => {
+    setError('Google Login is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID.');
+  };
+  
+  try {
+    const googleLoginFn = useGoogleLogin({
+      onSuccess: handleGoogleSuccess,
+      onError: () => setError('Google Registration Failed'),
+    });
+    if (hasGoogleClientId) {
+      loginWithGoogle = googleLoginFn;
+    }
+  } catch (e) {
+    // Catch error if Client ID is missing
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
