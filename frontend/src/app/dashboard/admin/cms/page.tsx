@@ -46,10 +46,10 @@ export default function CMSHubPage() {
       bg: 'bg-green-500/10'
     },
     {
-      title: 'Pricing Tiers',
+      title: 'Pricing & Plans',
       description: 'Manage subscription plans, pricing, tags, features, and billing periods.',
       icon: CreditCard,
-      href: '/dashboard/admin/cms/pricing',
+      href: '/dashboard/admin/cms/plans',
       color: 'text-yellow-400',
       bg: 'bg-yellow-500/10'
     },

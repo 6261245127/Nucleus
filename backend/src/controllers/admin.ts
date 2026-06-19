@@ -124,42 +124,17 @@ export const updateCampaignStatus = async (req: AuthRequest, res: Response) => {
     let updatedCampaign;
 
     if (status === 'ACTIVE' && campaign.status === 'PENDING') {
-      if (!budget || !rewardPerTask || !adminStartDate || !adminEndDate) {
-         return res.status(400).json({ message: 'Budget, Reward Per Task, and Start/End dates are required to approve a campaign' });
+      if (!adminStartDate || !adminEndDate) {
+         return res.status(400).json({ message: 'Start and End dates are required to approve a campaign' });
       }
 
-      const wallet = await prisma.wallet.findUnique({ where: { userId: campaign.creatorId } });
-      if (!wallet || wallet.coinBalance < budget) {
-         return res.status(400).json({ message: 'Creator does not have enough coins for this budget' });
-      }
-
-      updatedCampaign = await prisma.$transaction(async (tx) => {
-        // Deduct budget
-        await tx.wallet.update({
-          where: { userId: campaign.creatorId },
-          data: { coinBalance: { decrement: budget } },
-        });
-
-        // Record transaction
-        await tx.transaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: -budget,
-            type: 'CAMPAIGN_PAYMENT',
-            description: `Budget allocation for campaign: ${campaign.name}`,
-          },
-        });
-
-        return await tx.campaign.update({
-          where: { id },
-          data: { 
-            status, 
-            budget: parseFloat(budget), 
-            rewardPerTask: parseFloat(rewardPerTask),
-            adminStartDate: new Date(adminStartDate),
-            adminEndDate: new Date(adminEndDate)
-          },
-        });
+      updatedCampaign = await prisma.campaign.update({
+        where: { id },
+        data: { 
+          status, 
+          adminStartDate: new Date(adminStartDate),
+          adminEndDate: new Date(adminEndDate)
+        },
       });
     } else {
       updatedCampaign = await prisma.campaign.update({
@@ -252,6 +227,14 @@ export const updateWithdrawalStatus = async (req: AuthRequest, res: Response) =>
     const validStatuses = ['REVIEW', 'APPROVED', 'PAID', 'REJECTED'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const existingWithdrawal = await prisma.withdrawal.findUnique({ where: { id } });
+    if (!existingWithdrawal) {
+      return res.status(404).json({ message: 'Withdrawal not found' });
+    }
+    if (existingWithdrawal.status === 'REJECTED' || existingWithdrawal.status === 'PAID') {
+      return res.status(400).json({ message: 'Cannot update a completed or rejected withdrawal' });
     }
 
     const withdrawal = await prisma.withdrawal.update({

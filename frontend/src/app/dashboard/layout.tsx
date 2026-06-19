@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ? [
         { name: 'Dashboard', href: '/dashboard/creator', icon: LayoutDashboard },
         { name: 'Campaigns', href: '/dashboard/creator/campaigns', icon: Megaphone },
-        { name: 'Wallet', href: '/dashboard/creator/wallet', icon: Wallet },
+        { name: 'Plans & Billing', href: '/dashboard/creator/plans', icon: Wallet },
       ]
     : [
         { name: 'Dashboard', href: '/dashboard/viewer', icon: LayoutDashboard },

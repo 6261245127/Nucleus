@@ -17,7 +17,11 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { id: string; role: Role };
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET environment variable is missing.');
+      return res.status(500).json({ message: 'Internal server error: Auth misconfiguration' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as { id: string; role: Role };
     req.user = decoded;
     next();
   } catch (error) {

@@ -18,14 +18,40 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
     const creatorId = req.user!.id;
     const data = createCampaignSchema.parse(req.body);
 
+    const subscription = await prisma.creatorSubscription.findUnique({
+      where: { userId: creatorId },
+      include: { plan: true }
+    });
+
+    if (!subscription || subscription.status !== 'ACTIVE') {
+      return res.status(403).json({ message: 'You need an active subscription plan to create campaigns.' });
+    }
+
+    const activeCampaignsCount = await prisma.campaign.count({
+      where: { 
+        creatorId, 
+        status: { in: ['ACTIVE', 'PENDING', 'PAUSED'] } 
+      }
+    });
+
+    if (activeCampaignsCount >= subscription.plan.campaignLimit) {
+      return res.status(403).json({ message: `You have reached your plan limit of ${subscription.plan.campaignLimit} active campaigns. Please upgrade your plan.` });
+    }
+
     const campaign = await prisma.campaign.create({
       data: {
         ...data,
         budget: 0,
-        rewardPerTask: 0,
+        rewardPerTask: subscription.plan.viewerRewardCoins,
         creatorId,
         status: 'PENDING', // Admin needs to approve
       },
+    });
+
+    // Increment campaignsUsed tracking
+    await prisma.creatorSubscription.update({
+      where: { id: subscription.id },
+      data: { campaignsUsed: { increment: 1 } }
     });
 
     res.status(201).json(campaign);

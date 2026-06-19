@@ -15,7 +15,11 @@ export const authenticate = (req: NextRequest): AuthUser | null => {
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as AuthUser;
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET environment variable is missing.');
+      return null;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as AuthUser;
     return decoded;
   } catch (error) {
     return null;

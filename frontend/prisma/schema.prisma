@@ -90,7 +90,7 @@ model User {
   notifications  Notification[]
   auditLogs      AuditLog[]
   auditLogsTargeted AuditLog[] @relation("TargetUser")
-  subscription   Subscription?
+  creatorSubscription CreatorSubscription?
   transactions   Transaction[]
 
   @@index([role])
@@ -107,15 +107,39 @@ model UserStat {
   totalTasks      Int      @default(0)
 }
 
-model Subscription {
-  id        String           @id @default(uuid())
-  userId    String           @unique
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tier      SubscriptionTier @default(STARTER)
-  isActive  Boolean          @default(true)
-  expiresAt DateTime?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+model CMSCreatorPlan {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  description       String?
+  price             Float
+  campaignLimit     Int
+  viewerRewardCoins Float
+  features          String[]
+  badgeText         String?
+  buttonText        String   @default("Subscribe Now")
+  themeColor        String   @default("blue")
+  order             Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions     CreatorSubscription[]
+}
+
+model CreatorSubscription {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            CMSCreatorPlan @relation(fields: [planId], references: [id])
+  status          String         @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED
+  expiresAt       DateTime?
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  campaignsUsed   Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Wallet {
@@ -188,6 +212,7 @@ model Task {
 
   @@index([viewerId, status])
   @@index([campaignId])
+  @@unique([viewerId, campaignId])
 }
 
 model Referral {

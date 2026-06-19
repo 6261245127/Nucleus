@@ -47,24 +47,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Payment already verified' }, { status: 200 });
     }
 
-    // Update transaction and wallet
-    await prisma.$transaction([
-      prisma.transaction.update({
-        where: { id: transaction.id },
+    await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.transaction.updateMany({
+        where: { id: transaction.id, status: 'PENDING' },
         data: {
           status: 'SUCCESS',
           paymentId: razorpay_payment_id,
         }
-      }),
-      prisma.wallet.update({
+      });
+
+      if (updateResult.count === 0) {
+        throw new Error('Payment already verified or concurrent conflict');
+      }
+
+      await tx.wallet.update({
         where: { id: transaction.walletId },
         data: {
           fiatBalance: {
             increment: transaction.amount
           }
         }
-      })
-    ]);
+      });
+    });
 
     return NextResponse.json({ message: 'Payment verified successfully' });
 

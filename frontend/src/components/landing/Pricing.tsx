@@ -62,7 +62,11 @@ const defaultPlans: PlanData[] = [
 ];
 
 export default function Pricing({ section, plans }: PricingProps) {
-  const displayPlans = plans && plans.length > 0 ? plans : defaultPlans;
+  const displayPlans = plans || [];
+
+  if (displayPlans.length === 0) {
+    return null; // Hide the pricing section completely if no plans are configured in the CMS
+  }
 
   return (
     <section className="py-24 bg-[#050B22]">

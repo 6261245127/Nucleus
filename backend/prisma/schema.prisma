@@ -90,7 +90,8 @@ model User {
   notifications  Notification[]
   auditLogs      AuditLog[]
   auditLogsTargeted AuditLog[] @relation("TargetUser")
-  subscription   Subscription?
+  creatorSubscription CreatorSubscription?
+  transactions   Transaction[]
 
   @@index([role])
 }
@@ -106,15 +107,39 @@ model UserStat {
   totalTasks      Int      @default(0)
 }
 
-model Subscription {
-  id        String           @id @default(uuid())
-  userId    String           @unique
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tier      SubscriptionTier @default(STARTER)
-  isActive  Boolean          @default(true)
-  expiresAt DateTime?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+model CMSCreatorPlan {
+  id                String   @id @default(uuid())
+  name              String
+  slug              String   @unique
+  description       String?
+  price             Float
+  campaignLimit     Int
+  viewerRewardCoins Float
+  features          String[]
+  badgeText         String?
+  buttonText        String   @default("Subscribe Now")
+  themeColor        String   @default("blue")
+  order             Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions     CreatorSubscription[]
+}
+
+model CreatorSubscription {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            CMSCreatorPlan @relation(fields: [planId], references: [id])
+  status          String         @default("ACTIVE") // ACTIVE, CANCELLED, EXPIRED
+  expiresAt       DateTime?
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  campaignsUsed   Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model Wallet {
@@ -131,16 +156,24 @@ model Wallet {
 }
 
 model Transaction {
-  id          String          @id @default(uuid())
-  walletId    String
-  wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  amount      Float
-  type        TransactionType
-  referenceId String? // e.g. Task ID, Campaign ID, Withdrawal ID
-  description String?
-  createdAt   DateTime        @default(now())
+  id            String          @id @default(uuid())
+  walletId      String
+  wallet        Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amount        Float
+  type          TransactionType
+  status        String          @default("PENDING") // PENDING, SUCCESS, FAILED
+  paymentMethod String?
+  orderId       String?         @unique
+  paymentId     String?         @unique
+  gateway       String?         @default("RAZORPAY")
+  referenceId   String? // e.g. Task ID, Campaign ID, Withdrawal ID
+  description   String?
+  createdAt     DateTime        @default(now())
 
   @@index([walletId, createdAt(sort: Desc)])
+  @@index([userId, status])
 }
 
 model Campaign {
@@ -179,6 +212,7 @@ model Task {
 
   @@index([viewerId, status])
   @@index([campaignId])
+  @@unique([viewerId, campaignId])
 }
 
 model Referral {
@@ -338,4 +372,17 @@ model CMSAnnouncement {
   endDate   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CMSLegalPage {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  title           String
+  content         String   @db.Text
+  isPublished     Boolean  @default(false)
+  effectiveDate   DateTime?
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

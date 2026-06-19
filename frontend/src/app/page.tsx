@@ -84,9 +84,22 @@ export default async function Home() {
     });
 
     // 5. Fetch section-related dynamic lists
-    pricingPlans = await prisma.cMSPricingPlan.findMany({
+    const creatorPlans = await prisma.cMSCreatorPlan.findMany({
+      where: { isActive: true },
       orderBy: { order: 'asc' }
     });
+
+    pricingPlans = creatorPlans.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      currency: 'INR',
+      period: '/mo',
+      features: p.features,
+      badgeLabel: p.badgeText || null,
+      buttonText: p.buttonText,
+      isPopular: !!p.badgeText
+    }));
 
     testimonials = await prisma.cMSTestimonial.findMany({
       orderBy: { order: 'asc' }

@@ -90,7 +90,7 @@ export default function CampaignListPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Platform</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <TableHead>Reward/Task</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Tasks Completed</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -101,7 +101,7 @@ export default function CampaignListPage() {
                   <TableRow key={campaign.id}>
                     <TableCell className="font-medium">{campaign.name}</TableCell>
                     <TableCell>{campaign.platform}</TableCell>
-                    <TableCell>{campaign.budget} Coins</TableCell>
+                    <TableCell>{campaign.rewardPerTask} Coins</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(campaign.status)} variant="outline">
                         {campaign.status}

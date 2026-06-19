@@ -41,14 +41,22 @@ export async function POST(req: NextRequest) {
     // Deduct from appropriate balance (prioritize rewardBalance for viewers)
     const isReward = wallet.rewardBalance >= amount;
 
-    await prisma.$transaction([
-      prisma.wallet.update({
-        where: { id: wallet.id },
+    await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.wallet.updateMany({
+        where: { 
+          id: wallet.id,
+          ...(isReward ? { rewardBalance: { gte: amount } } : { fiatBalance: { gte: amount } })
+        },
         data: {
           ...(isReward ? { rewardBalance: { decrement: amount } } : { fiatBalance: { decrement: amount } })
         }
-      }),
-      prisma.withdrawal.create({
+      });
+
+      if (updateResult.count === 0) {
+        throw new Error('Insufficient balance or concurrent transaction conflict');
+      }
+
+      await tx.withdrawal.create({
         data: {
           userId: authUser.id,
           amount,
@@ -56,8 +64,9 @@ export async function POST(req: NextRequest) {
           details,
           status: 'PENDING'
         }
-      }),
-      prisma.transaction.create({
+      });
+
+      await tx.transaction.create({
         data: {
           walletId: wallet.id,
           userId: authUser.id,
@@ -67,8 +76,8 @@ export async function POST(req: NextRequest) {
           paymentMethod: method,
           description: `Withdrawal to ${method}`
         }
-      })
-    ]);
+      });
+    });
 
     return NextResponse.json({ message: 'Withdrawal request submitted successfully' });
 

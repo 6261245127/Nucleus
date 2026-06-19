@@ -80,8 +80,11 @@ export const startTask = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json({ message: 'Task started', task });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
+    if (error.code === 'P2002') {
+      return res.status(200).json({ message: 'Task already in progress' });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 };
@@ -209,8 +212,11 @@ export const completeTask = async (req: AuthRequest, res: Response) => {
       gamification: { level: result.level, streak: result.newStreak, totalTasks: result.totalTasks },
       coinsEarned: campaign.rewardPerTask,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ message: 'You have already completed this task and earned the reward.' });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 };
