@@ -1,10 +1,16 @@
 [build]
+  # Tell Netlify that the Next.js app lives in the 'frontend' directory
   base = "frontend"
-  command = "npm run build"
-  publish = ".next"
+  
+  # Netlify will run this command inside the 'frontend' directory
+  command = "npm install && npm run build"
+
+  # Let Netlify's Next.js plugin automatically handle the publish directory
+  # (Do not manually set publish = ".next" as it breaks Edge Functions)
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NEXT_PRIVATE_LOCAL_WEBPACK = "true"
+  # Suppress out-of-memory warnings for Webpack on Netlify
+  NODE_OPTIONS = "--max_old_space_size=4096"
