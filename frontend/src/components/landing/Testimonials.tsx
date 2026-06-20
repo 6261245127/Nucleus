@@ -79,7 +79,7 @@ export default function Testimonials({ section, testimonials }: TestimonialsProp
             >
               <div>
                 <div className="flex gap-1 mb-6">
-                  {Array.from({ length: t.rating || 5 }).map((_, starIdx) => (
+                  {Array.from({ length: Math.max(1, Math.min(5, t.rating || 5)) }).map((_, starIdx) => (
                     <Star key={starIdx} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
                   ))}
                 </div>

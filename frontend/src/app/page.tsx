@@ -101,9 +101,19 @@ export default async function Home() {
       isPopular: !!p.badgeText
     }));
 
-    testimonials = await prisma.cMSTestimonial.findMany({
+    const dbTestimonials = await prisma.cMSTestimonial.findMany({
       orderBy: { order: 'asc' }
     });
+    
+    testimonials = dbTestimonials.map(t => ({
+      id: t.id,
+      name: t.name,
+      role: t.role,
+      company: t.company,
+      image: t.image,
+      review: t.review,
+      rating: t.rating
+    }));
 
     faqs = await prisma.cMSFaq.findMany({
       orderBy: { order: 'asc' }
