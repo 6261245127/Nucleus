@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAuth } from '@/lib/auth';
+import { authenticate } from '@/lib/auth';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyAuth(req);
+    const user = authenticate(req as any);
     if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
@@ -26,7 +26,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyAuth(req);
+    const user = authenticate(req as any);
     if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
@@ -80,7 +80,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const user = await verifyAuth(req);
+    const user = authenticate(req as any);
     if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
     }
